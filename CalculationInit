@@ -1,0 +1,35 @@
+import pandas as pd
+import pandas_datareader.data as web
+from dateutil.relativedelta import relativedelta
+from dateutil.parser import parse
+import datetime
+import numpy as np
+import statistics
+import math
+from math import log, sqrt, exp
+from scipy import stats
+import sys
+import bs4
+import requests
+import matplotlib.pyplot as plt
+import sympy
+from scipy.integrate import quad
+import scipy
+
+#There's a lot of modules here. Perhaps I should cut a few in the near future
+
+# %matplotlib inline
+#Uncomment the above if you want to see the graphs below
+
+symbollist = ['ANZ.AX','BLD.AX']
+#This is for Australian shares only currently. In the future, when I expand to looking at US Options, I might store a nested list; with 
+#the first element being the symbol, and the second being the country?
+
+for item in symbollist:
+    stockvolatility(item)
+    zx = stockvolatility(item)
+    stockimpliedvolatility(item,zx[0],zx[1])
+    zxz = stockimpliedvolatility(item,zx[0],zx[1])
+    volplot(item,zxz)
+    
+print('done')
