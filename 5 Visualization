@@ -1,0 +1,44 @@
+# This makes the pretty graphs. Nothing really special, I think I need to set this per strike price so that the volatility smiles
+#can be observed
+
+def volplot(symbol,df):
+    
+    fig,axes = plt.subplots(1,2,figsize=(10,3))
+    
+    #fig = plt.figure(figsize=(5,5))
+    #fig2 = plt.figure(figsize=(5,5))
+
+    #ax = fig.add_axes([0,0,1,1])
+    
+
+    strike = df['4Exercise']
+    ttm = df['9daysremaining']
+    qiv = df['8multvol']
+    riv = df['10scaledimpvol']
+    niv = df['11costperimpvol']
+
+    axes[0].plot(ttm, qiv,'r')
+    axes[0].plot(ttm, riv,'b')
+     
+    
+    axes[0].set_xlabel('Days to Maturity')
+    axes[0].set_ylabel('Volatility %')
+    axes[0].set_title(symbol + ' Implied vs Historical volatility')
+    axes[0].grid(True)
+    
+    #fig.savefig(symbol + ' impvsscaledvol.png')
+    
+    #ax2 = fig2.add_axes([0,0,1,1])
+    
+    axes[1].plot(ttm, niv,'g')
+    
+    axes[1].set_xlabel('Days to Maturity')
+    axes[1].set_ylabel('$ per sigma')
+    axes[1].set_title(symbol+' Tradeoff per unit of volatility')
+    axes[1].grid(True)
+    
+    fig.savefig(symbol + ' costperimpvol.png')
+    
+    return fig
+
+print('ok')
