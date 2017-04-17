@@ -1,0 +1,47 @@
+# Not the world's best variable names. That needs to be changed in future. 
+# This sources stock data from Yahoo, and determines the standard deviation of the 
+# share over a 1 year period, creating historical volatility. 
+
+# TODO Change the relative datetime and standard deviation division to be aligned. Probably through some count rows function
+# for the dataframe...
+
+def stockvolatility(symbol):
+
+    monkey = web.DataReader(symbol, data_source='yahoo', start = datetime.datetime.now() - 
+    relativedelta(years=1)
+    , end = datetime.datetime.now())['Adj Close']
+
+    monkeys = pd.DataFrame(data = monkey)
+
+    y = pd.DataFrame.count(monkeys)
+
+    #print(monkeys['Adj Close'].iloc[-1])
+    monkeys.insert(1,'loginterday',value=0)
+
+    quant = 0 #hastobeputhere to prevent issues in below code
+
+    for i in monkeys.index:
+        z = np.log((monkeys['Adj Close'].iloc[quant])/(monkeys['Adj Close'].iloc[quant-1]))
+        monkeys.ix[i,1] = z
+        quant = quant + 1
+
+    monkeys.drop(monkeys.index[0],inplace=True)    
+    cash = pd.DataFrame.sum(monkeys['loginterday'])
+    sdavg = cash/y
+
+    def sdavgtrans(n):
+        return n - sdavg
+
+    monkeys['sdavgtrans'] = monkeys['loginterday'].apply(sdavgtrans)
+    monkeys['sdavgtrans2'] = monkeys['sdavgtrans'].apply(np.square)
+
+    zig = pd.DataFrame.sum(monkeys['sdavgtrans2'])
+    zig = zig / y
+    zig = sqrt(zig)
+
+    yearvolatility = zig * (sqrt(252)) #252 here is observed volatility across trading days
+    #print('Year Volatility ' + str(round(yearvolatility,4)*100)+'%')
+    finalclose = monkeys['Adj Close'].iloc[-1]
+    return zig, finalclose
+
+print('ok')
