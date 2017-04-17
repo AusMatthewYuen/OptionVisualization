@@ -1,0 +1,123 @@
+# This is about extracting data from the ASX Options website, and attempting to determine the implied volatility per option type
+
+def stockimpliedvolatility(symbol,zig,finalclose):
+
+    symbol = symbol[:3]
+
+    raw_df = pd.DataFrame(columns = ['code','Expiry date', 'P/C','Exercise','Last','Open Interest'])
+
+    url = 'http://www.asx.com.au/asx/markets/optionPrices.do?by=underlyingCode&underlyingCode=' + symbol +'&expiryDate=&optionType=Put'
+
+    r = requests.get(url)
+
+    soup = bs4.BeautifulSoup(r.text, 'lxml')
+    
+    Sigma = sympy.Symbol('Sigma')
+
+    raw_df
+
+    ticker = symbol
+    code = []
+    ExpiryDate = []
+    PC = []
+    Exercise = []
+    Last =[]
+    OpenInterest = []
+
+    table = soup.find(id='optionstable')
+
+    for row in table.find_all('tr')[2:]:
+
+        col = row.find_all('td')
+        column_1 = col[0].string.strip()
+        column_1 = datetime.datetime.strptime(column_1, '%d/%m/%Y')
+        ExpiryDate.append(column_1)
+        code.append(ticker)
+        column_2 = col[1].string.strip()
+        PC.append(column_2)
+        column_3 = float(col[2].string.strip())
+        Exercise.append(column_3)
+        column_4= col[4].string.strip()
+        if column_4 == '':
+            column_4 = 0
+        column_4 = float(column_4)
+        #if column_4 > finalclose:
+        #   column_4 = 0
+        Last.append(column_4)
+        column_5 = col[7].string.strip().replace(",","")
+        if column_5 == '':
+            column_5 = 0
+        column_5 = float(column_5)
+        OpenInterest.append(column_5)
+
+
+    columns = {'1Code':code,'2ExpiryDate':ExpiryDate,'3PutorCall':PC,'4Exercise':Exercise,'5Offer':Last,'6OpenInterest':OpenInterest}
+
+    df = pd.DataFrame(columns)
+
+    df = df[df['5Offer'] != 0]
+
+    df = df[df['4Exercise'] < finalclose]
+
+    xquant = 0 
+    zimpvol = []
+    multvol = []
+    dayremain = []
+    scaledimpvol = []
+    costperimpvol = []
+    sigmarequired = []
+    oddscheckering = []
+
+    for i in df.index:
+        V_market = df['5Offer'].iloc[xquant]
+        K = df['4Exercise'].iloc[xquant]
+        Tx = (df['2ExpiryDate'].iloc[xquant])
+        # Tx = datetime.datetime.strptime(Tx, '%d/%m/%Y')
+        T = (Tx - datetime.datetime.now()).days
+        if T <= 0:
+            T = 1
+        xandvolat = zig * sqrt(T)
+        T = T/365
+        S = finalclose
+        r = 0.02
+        div = 0.05
+        cp = 'p'
+        implied_vol = find_vol(V_market,cp,S,K,T,r,div)
+        zimpvol.append(implied_vol)
+        multvol.append(xandvolat)
+        xquant = xquant+1
+        dayremain.append(T*365)
+        scaledimpvol.append(implied_vol * sqrt(T))
+        costperimpvol.append(V_market/(implied_vol * sqrt(T)))
+        sigmasolution = sympy.solve(K-(finalclose - (finalclose * (Sigma*(implied_vol*sqrt(T))) - V_market)),Sigma)
+        if sigmasolution == []:
+            sigmasolution = [10]
+        sigmasolution2 = float(sigmasolution[0])
+        sigmarequired.append(1-stats.norm.cdf(sigmasolution2))
+        def integrand(x):
+            return max((1-stats.norm.cdf(x) *(K-(finalclose - (finalclose * (x*(0.22*sqrt(T))) - V_market)))),-V_market)
+        
+        EVOption ,err = quad(integrand,-5,5)
+        oddscheckering.append(max(EVOption,-V_market))
+        
+        
+
+    df['7impvol']=zimpvol
+    df['8multvol']=multvol
+    df['9daysremaining']=dayremain
+    df['10scaledimpvol'] =scaledimpvol
+    df['11costperimpvol'] =costperimpvol
+    df['12PercentageofBreakEven'] =sigmarequired
+    df['13ExpectedValueOption'] =oddscheckering
+    df['14ScaledEV'] = df['13ExpectedValueOption'] / df['11costperimpvol'] * df['9daysremaining']
+
+    df = df[np.isfinite(df['7impvol'])]
+    df = df[np.isfinite(df['10scaledimpvol'])]   
+
+    pd.DataFrame.to_csv(df,symbol + ' impvol.csv')
+    
+    df = df
+    
+    return df
+
+print('ok')
