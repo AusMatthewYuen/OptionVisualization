@@ -1,0 +1,42 @@
+# This is directly sourced from http://www.codeandfinance.com/finding-implied-vol.html
+# Only change I've made is to include a dividend yield in the calculation.
+
+def bs_price(cp_flag,S,K,T,r,v,div):
+    n = stats.norm.pdf
+    N = stats.norm.cdf
+    d1 = (log(S/K)+(r-div+v*v/2.)*T)/(v*sqrt(T))
+    d2 = d1-v*sqrt(T)
+    if cp_flag == 'c':
+        price = S*exp(-div*T)*N(d1)-K*exp(-r*T)*N(d2)
+    else:
+        price = K*exp(-r*T)*N(-d2)-S*exp(-div*T)*N(-d1)
+    return price
+
+def bs_vega(cp_flag,S,K,T,r,v,div):
+    n = stats.norm.pdf
+    N = stats.norm.cdf
+    d1 = (log(S/K)+(r-div+v*v/2.)*T)/(v*sqrt(T))
+    return S * sqrt(T)*n(d1)
+
+def find_vol(target_value, call_put, S, K, T, r,div):
+    n = stats.norm.pdf
+    N = stats.norm.cdf
+    MAX_ITERATIONS = 1000
+    PRECISION = 1.0e-5
+
+    sigma = 0.2
+    for i in range(0, MAX_ITERATIONS):
+        price = bs_price(call_put, S, K, T, r, sigma,div)
+        vega = bs_vega(call_put, S, K, T, r, sigma,div)
+
+        price = price
+        diff = target_value - price  # our root
+
+        if (abs(diff) < PRECISION):
+            return sigma
+        sigma = sigma + diff/vega # f(x) / f'(x)
+
+    # value wasn't found, return best guess so far
+    return sigma
+
+print('ok')
