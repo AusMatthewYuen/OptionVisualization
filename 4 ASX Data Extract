@@ -1,4 +1,5 @@
 # This is about extracting data from the ASX Options website, and attempting to determine the implied volatility per option type
+# Edit required to move everything across to Python rather than Anaconda to account for the requirements of Selenium
 
 def stockimpliedvolatility(symbol,zig,finalclose):
 
